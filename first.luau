@@ -1,20 +1,43 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- === ДОПОМІЖНІ ФУНКЦІЇ ДЛЯ КОНФІГУРАЦІЇ ===
+-- Ці функції використовують вбудовані методи Rayfield і додають сповіщення.
+local function SaveConfig(name)
+    if name and name ~= "" then
+        Rayfield:SaveConfiguration(name)
+        Rayfield:Notify("Збережено", "Конфігурацію '" .. name .. "' збережено.", 5)
+    else
+        Rayfield:Notify("Помилка", "Будь ласка, введіть назву конфігурації для збереження.", 5)
+    end
+end
+
+local function LoadConfig(name)
+    if name and name ~= "" then
+        Rayfield:LoadConfiguration(name)
+        Rayfield:Notify("Завантажено", "Конфігурацію '" .. name .. "' завантажено.", 5)
+    else
+        Rayfield:Notify("Помилка", "Будь ласка, введіть назву конфігурації для завантаження.", 5)
+    end
+end
+-- ==========================================
+
+-- ==================== СТВОРЕННЯ ВІКНА ====================
+
 local Window = Rayfield:CreateWindow({
    Name = "Мій Чіт (Rayfield)",
    LoadingTitle = "Завантаження...",
    LoadingSubtitle = "by Gemini",
    ConfigurationSaving = {
-      Enabled = true, -- Залишаємо true, щоб працювали конфігурації
+      Enabled = true, -- Залишаємо true для ручного керування конфігами
       FolderName = "MyRayfieldConfig",
-      FileName = "BigHub" -- Це основний файл, який завантажується автоматично
+      FileName = "BigHub" 
    },
    KeySystem = false,
 })
 
 -- ==================== Вкладка ПЕРСОНАЖ ====================
 
-local PlayerTab = Window:CreateTab("Персонаж", 4483362458) -- Іконка
+local PlayerTab = Window:CreateTab("Персонаж", 4483362458) 
 
 -- Слайдер Швидкості
 local SpeedSlider = PlayerTab:CreateSlider({
@@ -68,18 +91,28 @@ game:GetService("RunService").Stepped:Connect(function()
     end
 end)
 
--- ==================== Вкладка КОНФІГУРАЦІЇ (НОВА) ====================
+-- ==================== Вкладка КОНФІГУРАЦІЇ ====================
 
-local ConfigTab = Window:CreateTab("Конфігурації", 6071060965) -- Іконка шестерні для налаштувань
+local ConfigTab = Window:CreateTab("Конфігурації", 6071060965) 
 
--- Створення елементу управління конфігураціями
--- Цей елемент автоматично додає: 
--- 1. Випадаючий список збережених конфігів.
--- 2. Поле для введення назви нового конфіга.
--- 3. Кнопки "Зберегти", "Завантажити" та "Видалити".
+-- Використовуємо вбудований Rayfield Config Manager
 local ConfigManager = ConfigTab:CreateConfig({
     Name = "Керування Конфігураціями" 
 })
 
--- Завантажує останню використану конфігурацію при запуску
-Rayfield:LoadConfiguration()
+-- === БЕЗПЕКА ПРИ ЗАПУСКУ (НОВЕ) ===
+-- Цей блок гарантує, що швидкість і стрибок встановлюються на стандартні значення (16 і 50) 
+-- одразу після запуску скрипта, щоб запобігти кіку.
+pcall(function()
+    local LocalPlayer = game.Players.LocalPlayer
+    local Character = LocalPlayer and LocalPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    if Humanoid then
+        Humanoid.WalkSpeed = 16
+        Humanoid.JumpPower = 50
+    end
+end)
+
+-- !!! ВАЖЛИВО: Автоматичне завантаження конфігурації видалено !!!
+-- Тепер налаштування за замовчуванням (16, 50, false) будуть активні при запуску.
+-- Для завантаження збережених конфігів використовуйте вкладку "Конфігурації".
