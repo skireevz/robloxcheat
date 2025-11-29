@@ -1,55 +1,14 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Зберігаємо стан авто-фарму Blox Fruits
+-- Global flags for Auto Farm
 _G.BloxFruitsAutoFarm = false 
-_G.Questing = false -- Чи зайнятий скрипт взяттям квесту/фармом
-
--- === ДОПОМІЖНІ ФУНКЦІЇ ===
-
---- Зберігає поточні налаштування під заданим ім'ям
-local function SaveConfig(name)
-    if name and name ~= "" then
-        Rayfield:SaveConfiguration(name)
-        Rayfield:Notify("Збережено", "Конфігурацію '" .. name .. "' збережено.", 5)
-    else
-        Rayfield:Notify("Помилка", "Будь ласка, введіть назву конфігурації для збереження.", 5)
-    end
-end
-
---- Завантажує налаштування за заданим ім'ям
-local function LoadConfig(name)
-    if name and name ~= "" then
-        Rayfield:LoadConfiguration(name)
-        Rayfield:Notify("Завантажено", "Конфігурацію '" .. name .. "' завантажено.", 5)
-    else
-        Rayfield:Notify("Помилка", "Будь ласка, введіть назву конфігурації для завантаження.", 5)
-    end
-end
-
--- Функція для пошуку найближчого моба
-local function FindNearestMob(mobName)
-    local nearestMob = nil
-    local minDistance = math.huge
-    local playerPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
-
-    for _, mob in ipairs(game.Workspace:GetChildren()) do
-        -- Зміни 'Enemy' на те, як моб насправді називається в Workspace
-        if mob.Name:find(mobName) and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
-            local distance = (mob.PrimaryPart.Position - playerPos).magnitude
-            if distance < minDistance then
-                minDistance = distance
-                nearestMob = mob
-            end
-        end
-    end
-    return nearestMob
-end
-
--- ==================== СТВОРЕННЯ ВІКНА ====================
+_G.Questing = false 
+_G.QuestNPCName = "" 
+_G.Noclip = false
 
 local Window = Rayfield:CreateWindow({
-   Name = "Мій Чіт (Rayfield)",
-   LoadingTitle = "Завантаження...",
+   Name = "My Cheat Hub (Fixed)",
+   LoadingTitle = "Loading...",
    LoadingSubtitle = "by Gemini",
    ConfigurationSaving = {
       Enabled = true, 
@@ -59,7 +18,7 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false,
 })
 
--- === БЕЗПЕКА ПРИ ЗАПУСКУ ===
+-- === SAFETY CHECK: Apply initial safe values ===
 pcall(function()
     local LocalPlayer = game.Players.LocalPlayer
     local Character = LocalPlayer and LocalPlayer.Character
@@ -70,13 +29,13 @@ pcall(function()
     end
 end)
 
--- ==================== Вкладка ПЕРСОНАЖ ====================
+-- ==================== TAB: PLAYER ====================
 
-local PlayerTab = Window:CreateTab("Персонаж", 4483362458) 
+local PlayerTab = Window:CreateTab("Player", 4483362458) 
 
--- Слайдер Швидкості
+-- Speed Slider
 local SpeedSlider = PlayerTab:CreateSlider({
-   Name = "Швидкість (WalkSpeed)",
+   Name = "Speed (WalkSpeed)",
    Range = {16, 300},
    Increment = 1,
    Suffix = "Speed",
@@ -89,9 +48,9 @@ local SpeedSlider = PlayerTab:CreateSlider({
    end,
 })
 
--- Слайдер Стрибка
+-- Jump Slider
 local JumpSlider = PlayerTab:CreateSlider({
-   Name = "Стрибок (JumpPower)",
+   Name = "Jump (JumpPower)",
    Range = {50, 350},
    Increment = 1,
    Suffix = "Jump",
@@ -104,9 +63,9 @@ local JumpSlider = PlayerTab:CreateSlider({
    end,
 })
 
--- Кнопка Noclip
+-- Noclip Toggle
 local NoclipToggle = PlayerTab:CreateToggle({
-   Name = "Noclip (Крізь стіни)",
+   Name = "Noclip (Through Walls)",
    CurrentValue = false,
    Flag = "Toggle1", 
    Callback = function(Value)
@@ -114,7 +73,7 @@ local NoclipToggle = PlayerTab:CreateToggle({
    end,
 })
 
--- Логіка Noclip
+-- Noclip Logic
 game:GetService("RunService").Stepped:Connect(function()
     if _G.Noclip then
         pcall(function()
@@ -127,31 +86,35 @@ game:GetService("RunService").Stepped:Connect(function()
     end
 end)
 
--- ==================== Вкладка КОНФІГУРАЦІЇ ====================
+---
+## Configuration and Auto Farm Tabs
+---
 
-local ConfigTab = Window:CreateTab("Конфігурації", 6071060965) 
+-- ==================== TAB: CONFIGS ====================
+
+local ConfigTab = Window:CreateTab("Configs", 6071060965) 
 
 local ConfigManager = ConfigTab:CreateConfig({
-    Name = "Керування Конфігураціями" 
+    Name = "Configuration Manager" 
 })
 
--- ==================== 🍇 Вкладка BLDX FRUITS ФАРМ 🍇 ====================
+-- ==================== TAB: AUTO FARM (Requires RemoteEvents!) ====================
 
-local BloxFruitsTab = Window:CreateTab("Blox Fruits", 6069006093) -- Іконка фрукта
+local BloxFruitsTab = Window:CreateTab("Auto Farm", 6069006093) 
 
--- Поле для назви NPC, що видає квест
+-- NPC Name Input
 local NPCBox = BloxFruitsTab:CreateTextBox({
-   Name = "Назва NPC для квесту",
-   Placeholder = "Введіть назву NPC (наприклад, 'Quest Giver')",
+   Name = "Quest NPC Name",
+   Placeholder = "Enter NPC name (e.g., 'Quest Giver')",
    Flag = "QuestNPCName",
    Callback = function(Value)
         _G.QuestNPCName = Value 
    end,
 })
 
--- Перемикач Авто Фарм
-local AutoFarmBFToggle = BloxFruitsTab:CreateToggle({
-   Name = "Увімкнути Авто Фарм (Blox Fruits)",
+-- Auto Farm Toggle
+local AutoFarmToggle = BloxFruitsTab:CreateToggle({
+   Name = "Enable Auto Farm (Blox Fruits)",
    CurrentValue = false,
    Flag = "BloxFruitsAutoFarmToggle", 
    Callback = function(Value)
@@ -159,79 +122,85 @@ local AutoFarmBFToggle = BloxFruitsTab:CreateToggle({
    end,
 })
 
+-- Function to find nearest mob (Utility for Auto Farm)
+local function FindNearestMob(mobName)
+    local nearestMob = nil
+    local minDistance = math.huge
+    local playerPos = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
 
--- ==================== ОСНОВНА ЛОГІКА АВТО ФАРМУ ====================
+    for _, mob in ipairs(game.Workspace:GetChildren()) do
+        if mob.Name:find(mobName) and mob:FindFirstChildOfClass("Humanoid") and mob.Humanoid.Health > 0 then
+            local distance = (mob.PrimaryPart.Position - playerPos).magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestMob = mob
+            end
+        end
+    end
+    return nearestMob
+end
 
--- Цикл, який постійно перевіряє стан фарму
+-- MAIN AUTO FARM LOGIC (Still uses placeholders!)
 coroutine.wrap(function()
     while wait(1) do
-        if _G.BloxFruitsAutoFarm and game.Players.LocalPlayer.Character and not _G.Questing then
-            _G.Questing = true
+        if _G.BloxFruitsAutoFarm and game.Players.LocalPlayer.Character then
+            -- We don't use the questing flag here to keep the main loop simple, 
+            -- rely on the 1-second wait and user interaction.
+            
             pcall(function()
                 local LocalPlayer = game.Players.LocalPlayer
                 local MyRoot = LocalPlayer.Character.HumanoidRootPart
                 
-                -- 1. ЗНАХОДИМО NPC
+                -- 1. Check if NPC name is set and try to find it
                 local QuestNPC = game.Workspace:FindFirstChild(_G.QuestNPCName, true)
 
                 if QuestNPC and QuestNPC.PrimaryPart then
                     
-                    -- 2. ТЕЛЕПОРТ ДО NPC
+                    -- 2. TELEPORT TO NPC & QUEST ACCEPT (PLACEHOLDER)
                     MyRoot.CFrame = QuestNPC.PrimaryPart.CFrame * CFrame.new(0, 5, 5)
                     wait(0.5)
 
-                    -- 3. ВЗЯТТЯ КВЕСТУ (ВАЖЛИВО: ЗМІНІТЬ ЦЕЙ КОД)
-                    -- ЦЕ ЗАГЛУШКА! Вам потрібно знайти правильний RemoteEvent та його аргументи.
-                    local QuestRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Ваш_Квест_RemoteEvent") 
+                    -- *** REPLACE THIS WITH ACTUAL QUEST REMOTE CALL ***
+                    local QuestRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Your_Quest_RemoteEvent_Here") 
                     if QuestRemote then
-                         -- ПРИКЛАД: RemoteEvent:FireServer(АргументиКвесту)
-                         QuestRemote:FireServer("StartQuest", "Bandit")
-                         Rayfield:Notify("Квест", "Квест взято. Починаємо фарм...", 3)
-                    else
-                         Rayfield:Notify("Помилка", "Не знайдено RemoteEvent для квесту.", 5)
+                         -- Example: QuestRemote:FireServer(Arguments)
+                         -- QuestRemote:FireServer("StartQuest", "Bandit")
+                         Rayfield:Notify("Quest", "Attempting to accept quest...", 1)
                     end
-
-                    -- Отримуємо інформацію про ціль (якщо вдалося взяти квест)
-                    -- У Blox Fruits інформація про ціль зазвичай зберігається у LocalPlayer.PlayerGui
-                    local TargetMobName = "Bandit" -- Припустімо, що це "Bandit"
+                    
+                    -- 3. FARM MOBS (PLACEHOLDER)
+                    local TargetMobName = "Bandit" -- Change this to the target mob name
                     local MobsToKill = 10 
                     
-                    -- 4. ФАРМ МОБІВ
                     for i = 1, MobsToKill do
-                        if not _G.BloxFruitsAutoFarm then break end -- Якщо користувач вимкнув чит
+                        if not _G.BloxFruitsAutoFarm then break end 
                         
                         local Mob = FindNearestMob(TargetMobName)
                         if Mob and Mob.PrimaryPart then
-                            -- Телепорт до моба
                             MyRoot.CFrame = Mob.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
-                            wait(0.1) -- Затримка, щоб уникнути кіку
+                            wait(0.1) 
                             
-                            -- АТАКА (ВАЖЛИВО: ЗМІНІТЬ ЦЕЙ КОД)
-                            -- Вам потрібно знайти RemoteEvent для вашої атаки (наприклад, фрукт чи меч)
-                            local AttackRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Ваш_Атака_RemoteEvent")
+                            -- *** REPLACE THIS WITH ACTUAL ATTACK REMOTE CALL ***
+                            local AttackRemote = game:GetService("ReplicatedStorage"):FindFirstChild("Your_Attack_RemoteEvent_Here")
                             if AttackRemote then
-                                -- ПРИКЛАД: AttackRemote:FireServer("НазваАтаки", Mob)
-                                AttackRemote:FireServer("SwordSkill1", Mob)
+                                -- AttackRemote:FireServer("SwordSkill1", Mob)
+                                Rayfield:Notify("Farm", "Attacking " .. Mob.Name, 0.5)
                             end
                             
-                            wait(1.5) -- Обов'язкова затримка після атаки
+                            wait(1.5) 
                         else
-                            Rayfield:Notify("Пошук", "Ціль '" .. TargetMobName .. "' не знайдено. Чекаю на респавн.", 3)
                             wait(5)
                         end
                     end
                     
-                    -- 5. ПОВЕРНЕННЯ ДЛЯ ЗДАЧІ КВЕСТУ (опціонально, Blox Fruits часто здає авто)
-                    -- MyRoot.CFrame = QuestNPC.PrimaryPart.CFrame * CFrame.new(0, 5, 5)
-                    -- QuestRemote:FireServer("CompleteQuest")
-                    
                 else
-                    Rayfield:Notify("Помилка", "Не знайдено NPC '" .. tostring(_G.QuestNPCName) .. "'", 5)
+                    Rayfield:Notify("Error", "NPC name not set or NPC not found.", 1)
                 end
                 
             end)
-            _G.Questing = false
         end
         wait(1)
     end
 end)()
+
+Rayfield:LoadConfiguration()
